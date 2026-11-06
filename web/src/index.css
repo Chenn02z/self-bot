@@ -27,7 +27,11 @@
 }
 
 @layer base {
-  html, body { background: var(--paper); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+  /* the app only ever scrolls vertically */
+  html, body { background: var(--paper); color: var(--ink); -webkit-tap-highlight-color: transparent; overflow-x: clip; }
+  /* iOS gives date inputs an intrinsic min-width that ignores width:100% and overflows the sheet */
+  input[type="date"], input[type="datetime-local"] { -webkit-appearance: none; appearance: none; min-width: 0; display: block; }
+  input::-webkit-date-and-time-value { text-align: left; }
   input, select, textarea, button { font: inherit; color: inherit; }
   /* iOS zooms into inputs under 16px; in base layer so utilities can still override */
   input, select, textarea { font-size: 16px; }
