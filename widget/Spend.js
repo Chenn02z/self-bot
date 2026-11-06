@@ -40,7 +40,7 @@ const money = (n) => "$" + Number(n).toLocaleString("en-SG", { minimumFractionDi
 function build(data, error) {
   const w = new ListWidget();
   w.backgroundColor = Color.dynamic(Color.white(), new Color("#1c1c1e"));
-  w.url = "https://spend-nu-five.vercel.app";
+  // No w.url: iOS would open it in the default browser, not the Home Screen web app (separate login).
   w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
   const fg = Color.dynamic(new Color("#111111"), Color.white());
   const grey = Color.gray();

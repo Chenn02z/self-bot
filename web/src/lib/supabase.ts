@@ -9,10 +9,4 @@ export const supabase = createClient<Database>(
 
 export type Tx = Database['public']['Tables']['transactions']['Row']
 export type Category = Database['public']['Tables']['categories']['Row']
-
-// Mirrors the public.spend_rows view: expense-kind or uncategorised rows count; out adds, in subtracts.
-export const counts = (cat?: Category) => !cat || cat.kind === 'expense'
-export const signed = (t: Tx) => (t.direction === 'out' ? 1 : -1) * Number(t.amount)
-
-export const money = (n: number) =>
-  n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export type Kind = 'expense' | 'income' | 'transfer'

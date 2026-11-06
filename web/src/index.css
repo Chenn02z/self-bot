@@ -1,7 +1,39 @@
 @import "tailwindcss";
 
-html, body { background: #fff; color: #111; -webkit-tap-highlight-color: transparent; }
-body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
-input, select, textarea, button { font: inherit; }
-/* iOS zooms into inputs under 16px */
-input, select, textarea { font-size: 16px; }
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-gain: var(--gain);
+  --color-warn: var(--warn);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  /* matches the widget's rounded system font */
+  --font-round: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+}
+
+:root {
+  --paper: #EEF1F5; --card: #FFFFFF; --ink: #15243D; --mute: #78839A; --line: #DDE2EA;
+  --gain: #1F8A4C; --warn: #D7263D;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0F1726; --card: #182236; --ink: #E6ECF6; --mute: #8792A8; --line: #26324A;
+    --gain: #4CD07D; --warn: #FF6B7A;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  html, body { background: var(--paper); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font: inherit; color: inherit; }
+  /* iOS zooms into inputs under 16px; in base layer so utilities can still override */
+  input, select, textarea { font-size: 16px; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+}
+
+@keyframes sheet-in { from { transform: translateY(100%); } }
+.sheet-in { animation: sheet-in .28s cubic-bezier(.2, .8, .2, 1); }
+@media (prefers-reduced-motion: reduce) { .sheet-in { animation: none; } }
