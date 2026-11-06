@@ -1,23 +1,22 @@
 import { useMemo, useRef, useState } from 'react'
-import { addMonths, dayLabel, daysInMonth, monthStart, sameMonth } from '../../lib/dates'
+import { addMonths, daysInMonth, monthStart, sameMonth } from '../../lib/dates'
 import type { Category, Tx } from '../../lib/supabase'
 import { useMonthTransactions } from '../../hooks/useMonthTransactions'
+import { sectionTitle } from '../../ui/styles'
 import CategoryBreakdown from './CategoryBreakdown'
-import MonthGrid from './MonthGrid'
+import DayStepper from './DayStepper'
 import MonthHeader from './MonthHeader'
 import MonthTotal from './MonthTotal'
-import { applyFilter, sameFilter, summarise, type Filter } from './summary'
+import { inCategory, onDay, spentIn, summarise } from './summary'
 import TransactionList from './TransactionList'
 import TransactionSheet from './TransactionSheet'
-
-const RECENT = 12
 
 type Props = { userId: string; cats: Category[]; adding: boolean; onAddClose: () => void }
 
 export default function SpendingPage({ userId, cats, adding, onAddClose }: Props) {
   const [month, setMonth] = useState(() => monthStart(new Date()))
-  const [filter, setFilter] = useState<Filter>(null)
-  const [showAll, setShowAll] = useState(false)
+  const [day, setDay] = useState(() => new Date().getDate())
+  const [catFilter, setCatFilter] = useState<string | null>(null)
   const [editing, setEditing] = useState<Tx | null>(null)
   const listRef = useRef<HTMLElement>(null)
   const { txs, reload } = useMonthTransactions(month)
@@ -25,24 +24,25 @@ export default function SpendingPage({ userId, cats, adding, onAddClose }: Props
 
   const now = new Date()
   const ongoing = sameMonth(month, now)
-  const { total, perDay, slices, dailyAvg } = summarise(txs, catById, ongoing ? now.getDate() : daysInMonth(month))
+  const { total, slices, dailyAvg } = summarise(txs, catById, ongoing ? now.getDate() : daysInMonth(month))
+  const date = new Date(month.getFullYear(), month.getMonth(), day)
+  const dayTxs = onDay(txs, day)
 
-  const matching = applyFilter(txs, filter)
-  const shown = filter || showAll ? matching : matching.slice(0, RECENT)
-  const title = !filter ? 'Recent'
-    : 'day' in filter ? dayLabel(new Date(month.getFullYear(), month.getMonth(), filter.day))
-    : catById.get(filter.cat)?.name ?? 'Uncategorised'
-
-  const shift = (n: number) => {
-    setMonth(addMonths(month, n))
-    setFilter(null)
-    setShowAll(false)
+  const goTo = (d: Date) => {
+    if (!sameMonth(d, month)) setMonth(monthStart(d))
+    setDay(d.getDate())
   }
-  const pick = (f: NonNullable<Filter>) => {
-    const toggledOff = sameFilter(f, filter)
-    setFilter(toggledOff ? null : f)
-    // the list sits below the calendar and breakdown; bring the filtered rows into view
-    if (!toggledOff) {
+  // Date rolls over, so stepping back from the 1st lands on last month's final day
+  const stepDay = (n: number) => goTo(new Date(month.getFullYear(), month.getMonth(), day + n))
+  // A new month opens on today if it's the current one, else its last day
+  const shiftMonth = (n: number) => {
+    const m = addMonths(month, n)
+    goTo(sameMonth(m, now) ? now : new Date(m.getFullYear(), m.getMonth() + 1, 0))
+  }
+  const pickCategory = (id: string) => {
+    const off = catFilter === id
+    setCatFilter(off ? null : id)
+    if (!off) {
       const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
       requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }))
     }
@@ -54,18 +54,29 @@ export default function SpendingPage({ userId, cats, adding, onAddClose }: Props
 
   return (
     <div className="px-5">
-      <MonthHeader month={month} canGoForward={!ongoing} onShift={shift} />
+      <MonthHeader month={month} canGoForward={!ongoing} onShift={shiftMonth} />
       <MonthTotal total={total} dailyAvg={dailyAvg} ongoing={ongoing} />
-      <MonthGrid month={month} perDay={perDay} today={ongoing ? now.getDate() : null}
-        selected={filter && 'day' in filter ? filter.day : null} onPick={(day) => pick({ day })} />
-      <CategoryBreakdown slices={slices} catById={catById}
-        selected={filter && 'cat' in filter ? filter.cat : null} onPick={(cat) => pick({ cat })} />
-      <TransactionList ref={listRef} title={title} txs={shown} catById={catById}
-        showDayHeaders={!(filter && 'day' in filter)}
-        emptyText={filter ? `Nothing for ${title}.` : `Nothing recorded in ${month.toLocaleDateString('en-SG', { month: 'long' })}. Tap + to add a transaction.`}
-        hiddenCount={matching.length - shown.length}
-        onClear={filter ? () => setFilter(null) : undefined}
-        onShowAll={() => setShowAll(true)} onOpen={setEditing} />
+      <CategoryBreakdown slices={slices} catById={catById} selected={catFilter} onPick={pickCategory} />
+
+      <section ref={listRef} className="mt-8 scroll-mt-4">
+        {catFilter === null ? (
+          <>
+            <DayStepper date={date} spent={spentIn(dayTxs, catById)}
+              canForward={!(ongoing && day >= now.getDate())} onStep={stepDay} />
+            <TransactionList txs={dayTxs} catById={catById} showDayHeaders={false}
+              emptyText="No transactions this day." onOpen={setEditing} />
+          </>
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between">
+              <h2 className={sectionTitle}>{catById.get(catFilter)?.name ?? 'Uncategorised'}</h2>
+              <button onClick={() => setCatFilter(null)} className="text-sm font-semibold text-mute">Back to days</button>
+            </div>
+            <TransactionList txs={inCategory(txs, catFilter)} catById={catById} showDayHeaders
+              emptyText="Nothing in this category this month." onOpen={setEditing} />
+          </>
+        )}
+      </section>
 
       {(adding || editing) && (
         <TransactionSheet userId={userId} cats={cats} tx={editing}

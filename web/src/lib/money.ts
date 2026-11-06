@@ -10,5 +10,3 @@ export const money = (n: number) =>
 // "$12.30", or "−$5.00" when refunds outweigh spending
 export const cash = (n: number) => `${n < 0 ? '−' : ''}$${money(Math.abs(n))}`
 
-// Fits a calendar cell: "39", "1.2k", "<1"
-export const compact = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n < 1 ? '<1' : String(Math.round(n))
