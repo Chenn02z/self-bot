@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react'
 import { monthStart } from '../../lib/dates'
 import { cash } from '../../lib/money'
 import type { Category } from '../../lib/supabase'
+import { useHabits } from '../../hooks/useHabits'
 import { useMonthTransactions } from '../../hooks/useMonthTransactions'
 import { pageTitle, sectionTitle, surface } from '../../ui/styles'
+import { habitStats } from '../habits/stats'
 import { onDay, spentIn, summarise } from '../spending/summary'
 
-export type Screen = 'spending' | 'settings'
+export type Screen = 'spending' | 'habits' | 'settings'
 
-export default function HomePage({ cats, onOpen }: { cats: Category[]; onOpen: (s: Screen) => void }) {
+export default function HomePage({ userId, cats, onOpen }: { userId: string; cats: Category[]; onOpen: (s: Screen) => void }) {
   return (
     <div className="space-y-4 px-5 pt-6">
       <header className="flex items-center justify-between">
@@ -22,6 +24,7 @@ export default function HomePage({ cats, onOpen }: { cats: Category[]; onOpen: (
         </button>
       </header>
       <SpendingCard cats={cats} onOpen={() => onOpen('spending')} />
+      <HabitsCard userId={userId} onOpen={() => onOpen('habits')} />
     </div>
   )
 }
@@ -45,5 +48,34 @@ function SpendingCard({ cats, onOpen }: { cats: Category[]; onOpen: () => void }
       <span className="mt-2 block font-round text-3xl font-bold tabular-nums">{cash(total)}</span>
       <span className="block text-sm text-mute tabular-nums">this month · {cash(todaySpent)} today</span>
     </button>
+  )
+}
+
+function HabitsCard({ userId, onOpen }: { userId: string; onOpen: () => void }) {
+  const { habits, checkIns, today } = useHabits(userId)
+  const { done, total } = habitStats(habits, checkIns, today)
+
+  return (
+    <button onClick={onOpen} className={`${surface} flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-80`}>
+      <span className="flex-1">
+        <span className="flex items-baseline justify-between">
+          <span className={sectionTitle}>Habits</span>
+          <span aria-hidden className="text-mute">›</span>
+        </span>
+        <span className="mt-2 block font-round text-3xl font-bold tabular-nums">{done} of {total}</span>
+        <span className="block text-sm text-mute">{total === 0 ? 'add your first habit' : 'done today'}</span>
+      </span>
+      <ProgressRing value={total ? done / total : 0} />
+    </button>
+  )
+}
+
+function ProgressRing({ value }: { value: number }) {
+  return (
+    <svg viewBox="0 0 36 36" className="size-14 shrink-0 -rotate-90" aria-hidden>
+      <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line)" strokeWidth="4" />
+      <circle cx="18" cy="18" r="15" fill="none" stroke="var(--gain)" strokeWidth="4" strokeLinecap="round"
+        pathLength={100} strokeDasharray={`${value * 100} 100`} opacity={value ? 1 : 0} />
+    </svg>
   )
 }

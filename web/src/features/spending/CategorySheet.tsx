@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { deleteCategory, saveCategory } from '../../lib/api'
 import type { Category, Kind } from '../../lib/supabase'
+import ColorPicker, { SWATCHES } from '../../ui/ColorPicker'
 import Segmented from '../../ui/Segmented'
 import Sheet, { SheetHeader } from '../../ui/Sheet'
 import { field, tint } from '../../ui/styles'
 import { KIND_HINT, KINDS } from './kinds'
-
-const SWATCHES = ['#FF9500', '#FF3B30', '#FF2D55', '#AF52DE', '#5856D6', '#007AFF',
-  '#30B0C7', '#34C759', '#FFCC00', '#A2845E', '#8E8E93', '#636366']
 
 // Add (cat = null) or edit a category.
 export default function CategorySheet({ userId, cat, onClose, onSaved }: { userId: string; cat: Category | null; onClose: () => void; onSaved: () => void }) {
@@ -50,13 +48,7 @@ export default function CategorySheet({ userId, cat, onClose, onSaved }: { userI
           autoFocus={!cat} className={field} />
       </div>
 
-      <div className="mt-6 grid grid-cols-6 gap-3" role="radiogroup" aria-label="Colour">
-        {SWATCHES.map((s) => (
-          <button key={s} role="radio" aria-checked={color === s} aria-label={s} onClick={() => setColor(s)}
-            className={`aspect-square rounded-full ${color === s ? 'ring-2 ring-ink ring-offset-2 ring-offset-card' : ''}`}
-            style={{ background: s }} />
-        ))}
-      </div>
+      <div className="mt-6"><ColorPicker value={color} onChange={setColor} /></div>
 
       <div className="mt-6">
         <Segmented value={kind} onChange={setKind} options={KINDS} />
