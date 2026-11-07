@@ -23,8 +23,8 @@ export default function LoginPage() {
   const input = 'rounded-xl bg-card px-4 py-3 placeholder:text-mute'
   return (
     <form onSubmit={submit} className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-3 px-6">
-      <h1 className="font-round text-4xl font-bold">Spend</h1>
-      <p className="mb-4 text-mute">Sign in to see where your money went.</p>
+      <h1 className="font-round text-4xl font-bold">Life</h1>
+      <p className="mb-4 text-mute">Sign in to your daily tools.</p>
       <input className={input} type="email" autoComplete="username" placeholder="Email" aria-label="Email"
         value={email} onChange={(e) => setEmail(e.target.value)} required />
       <input className={input} type="password" autoComplete="current-password" placeholder="Password" aria-label="Password"
