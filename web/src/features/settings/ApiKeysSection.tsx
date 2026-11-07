@@ -31,7 +31,7 @@ export default function ApiKeysSection() {
   }
 
   return (
-    <Section title="API keys" hint="Widget keys power the home screen widget. Ingest keys let the email forwarder add transactions.">
+    <Section title="API keys" hint="Widget keys power the home screen widget. Ingest keys let the email forwarder add transactions. Habit keys let iOS Shortcuts check in.">
       <div className={`${surface} p-4`}>
         {keys.length > 0 && (
           <ul className="mb-4 space-y-2">
@@ -49,6 +49,7 @@ export default function ApiKeysSection() {
           <select className={smallField} value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Scope">
             <option value="widget">widget</option>
             <option value="ingest">ingest</option>
+            <option value="habit">habit</option>
           </select>
           <button onClick={create} className="rounded-lg bg-ink px-3 text-sm font-semibold text-card">Create</button>
         </div>

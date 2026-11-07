@@ -1,9 +1,24 @@
 import { useState } from 'react'
 import { saveHabit, setArchived } from '../../lib/api'
-import type { Habit } from '../../lib/supabase'
+import { PUBLISHABLE_KEY, SUPABASE_URL, type Habit } from '../../lib/supabase'
 import ColorPicker, { SWATCHES } from '../../ui/ColorPicker'
 import Sheet, { SheetHeader } from '../../ui/Sheet'
 import { field, tint } from '../../ui/styles'
+
+// Everything needed to build the iOS Shortcut except the habit key, which the user pastes in.
+const shortcutDetails = (h: Habit) => `Shortcut for ${h.emoji} ${h.name}
+
+URL: ${SUPABASE_URL}/rest/v1/rpc/habit_check_in
+apikey: ${PUBLISHABLE_KEY}
+p_habit_id: ${h.id}
+
+1. Get Contents of URL → the URL above
+   Method: POST
+   Headers: apikey = the apikey above; Content-Type = application/json
+   Request Body (JSON): p_key = your habit key (Settings → API keys); p_habit_id = the id above
+2. Get Dictionary Value: count, target, emoji, name
+3. Show Notification: emoji name count/target
+4. Name it "${h.name}". To add another habit, Duplicate and change only p_habit_id and the name.`
 
 // Add (habit = null) or edit a habit. sortOrder is where a new one lands (the end).
 export default function HabitSheet({ userId, habit, sortOrder, onClose, onSaved }: {
@@ -14,6 +29,7 @@ export default function HabitSheet({ userId, habit, sortOrder, onClose, onSaved 
   const [color, setColor] = useState(habit?.color ?? SWATCHES[5])
   const [target, setTarget] = useState(habit?.target ?? 1)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const commit = async (write: () => Promise<unknown>) => {
     try {
@@ -62,6 +78,11 @@ export default function HabitSheet({ userId, habit, sortOrder, onClose, onSaved 
 
       {habit && (
         <>
+          {!habit.archived_at && <>
+          <button onClick={() => navigator.clipboard.writeText(shortcutDetails(habit)).then(() => setCopied(true), (e) => setError(e.message))}
+            className="mt-8 w-full rounded-xl bg-paper py-3 font-semibold">{copied ? 'Copied' : 'Copy Shortcut details'}</button>
+          <p className="px-1 pt-1 text-center text-sm text-mute">For a one-tap iOS Shortcut. Paste in a habit-scoped API key.</p>
+          </>}
           <button onClick={() => commit(() => setArchived(habit.id, true))} className="mt-8 w-full py-3 font-semibold text-warn">Archive habit</button>
           <p className="px-1 text-center text-sm text-mute">Hidden from Habits and Home. Check-ins are kept; unarchive any time.</p>
         </>

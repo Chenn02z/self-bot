@@ -245,6 +245,10 @@ export type Database = {
         Args: { p_label: string; p_scope: string }
         Returns: string
       }
+      habit_check_in: {
+        Args: { p_habit_id: string; p_key: string }
+        Returns: Json
+      }
       ingest_one: {
         Args: {
           p_amount: string
