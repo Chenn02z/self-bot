@@ -1,5 +1,5 @@
 // The only module that talks to Supabase. Every call throws on failure, so callers can show the message.
-import { supabase, type Category, type Tx } from './supabase'
+import { supabase, type Category, type CheckIn, type Habit, type Tx } from './supabase'
 
 type Result<T> = PromiseLike<{ data: T | null; error: { message: string } | null }>
 async function run<T>(q: Result<T>): Promise<T> {
@@ -49,6 +49,22 @@ export async function saveCategory(userId: string, cat: Category | null, f: Cate
 }
 
 export const deleteCategory = (id: string) => run(supabase.from('categories').delete().eq('id', id))
+
+// Habits
+export type HabitFields = Pick<Habit, 'emoji' | 'name' | 'color' | 'target'>
+
+export const listHabits = async (): Promise<Habit[]> =>
+  (await run(supabase.from('habits').select('*').order('sort_order').order('created_at'))) ?? []
+
+export const createHabit = (userId: string, f: HabitFields) =>
+  run(supabase.from('habits').insert({ ...f, user_id: userId }))
+
+export const listCheckIns = async (day: string): Promise<CheckIn[]> =>
+  (await run(supabase.from('check_ins').select('habit_id, day').eq('day', day))) ?? []
+
+// One tap = one row. The database stamps the Singapore day.
+export const checkIn = (userId: string, habitId: string) =>
+  run(supabase.from('check_ins').insert({ user_id: userId, habit_id: habitId }))
 
 // Profile
 export async function getOwnAccountsHint() {

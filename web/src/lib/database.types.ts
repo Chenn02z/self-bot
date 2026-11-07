@@ -65,6 +65,77 @@ export type Database = {
         }
         Relationships: []
       }
+      check_ins: {
+        Row: {
+          created_at: string
+          day: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_habit_id_user_id_fkey"
+            columns: ["habit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          archived_at: string | null
+          color: string
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          sort_order: number
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          name: string
+          sort_order?: number
+          target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           own_accounts_hint: string

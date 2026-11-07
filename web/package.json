@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "check": "node src/features/spending/summary.check.ts",
+    "check": "node src/features/spending/summary.check.ts && node src/features/habits/stats.check.ts",
     "preview": "vite preview"
   },
   "dependencies": {

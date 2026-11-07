@@ -18,3 +18,6 @@ export function toLocalInput(d: Date) {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
+
+// Today's Singapore calendar day as 'YYYY-MM-DD' (en-CA formats ISO-style), matching check_ins.day.
+export const sgtToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })

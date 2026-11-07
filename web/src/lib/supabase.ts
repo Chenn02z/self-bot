@@ -10,3 +10,5 @@ export const supabase = createClient<Database>(
 export type Tx = Database['public']['Tables']['transactions']['Row']
 export type Category = Database['public']['Tables']['categories']['Row']
 export type Kind = 'expense' | 'income' | 'transfer'
+export type Habit = Database['public']['Tables']['habits']['Row']
+export type CheckIn = Pick<Database['public']['Tables']['check_ins']['Row'], 'habit_id' | 'day'>

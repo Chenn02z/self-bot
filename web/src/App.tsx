@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LoginPage from './features/auth/LoginPage'
+import HabitsPage from './features/habits/HabitsPage'
 import HomePage, { type Screen } from './features/home/HomePage'
 import SettingsPage from './features/settings/SettingsPage'
 import SpendingPage from './features/spending/SpendingPage'
@@ -20,8 +21,9 @@ function Shell({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto min-h-dvh max-w-md pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-      {screen === 'home' && <HomePage cats={cats} onOpen={setScreen} />}
+      {screen === 'home' && <HomePage userId={userId} cats={cats} onOpen={setScreen} />}
       {screen === 'spending' && <SpendingPage userId={userId} cats={cats} reloadCats={reload} onBack={home} />}
+      {screen === 'habits' && <HabitsPage userId={userId} onBack={home} />}
       {screen === 'settings' && <SettingsPage userId={userId} onBack={home} />}
     </div>
   )
