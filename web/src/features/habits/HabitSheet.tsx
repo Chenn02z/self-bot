@@ -1,34 +1,40 @@
 import { useState } from 'react'
-import { createHabit } from '../../lib/api'
+import { saveHabit, setArchived } from '../../lib/api'
+import type { Habit } from '../../lib/supabase'
 import ColorPicker, { SWATCHES } from '../../ui/ColorPicker'
 import Sheet, { SheetHeader } from '../../ui/Sheet'
 import { field, tint } from '../../ui/styles'
 
-// New habit. Editing arrives with #5.
-export default function HabitSheet({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => void }) {
-  const [emoji, setEmoji] = useState('✅')
-  const [name, setName] = useState('')
-  const [color, setColor] = useState(SWATCHES[5])
-  const [target, setTarget] = useState(1)
+// Add (habit = null) or edit a habit. sortOrder is where a new one lands (the end).
+export default function HabitSheet({ userId, habit, sortOrder, onClose, onSaved }: {
+  userId: string; habit: Habit | null; sortOrder: number; onClose: () => void; onSaved: () => void
+}) {
+  const [emoji, setEmoji] = useState(habit?.emoji ?? '✅')
+  const [name, setName] = useState(habit?.name ?? '')
+  const [color, setColor] = useState(habit?.color ?? SWATCHES[5])
+  const [target, setTarget] = useState(habit?.target ?? 1)
   const [error, setError] = useState('')
 
-  async function save() {
-    if (!name.trim()) return setError('Give the habit a name')
+  const commit = async (write: () => Promise<unknown>) => {
     try {
-      await createHabit(userId, { emoji: emoji.trim() || '✅', name: name.trim(), color, target })
+      await write()
       onSaved()
       onClose()
     } catch (e) {
       setError((e as Error).message)
     }
   }
+  function save() {
+    if (!name.trim()) return setError('Give the habit a name')
+    commit(() => saveHabit(userId, habit, { emoji: emoji.trim() || '✅', name: name.trim(), color, target }, sortOrder))
+  }
 
   const step = 'grid size-11 place-items-center rounded-full bg-paper text-xl font-semibold disabled:opacity-40'
   return (
-    <Sheet onClose={onClose} label="New habit"
+    <Sheet onClose={onClose} label={habit ? `Edit ${habit.name}` : 'New habit'}
       header={
-        <SheetHeader onClose={onClose} action={{ label: 'Add', onClick: save }}>
-          <h3 className="font-round font-bold">New habit</h3>
+        <SheetHeader onClose={onClose} action={{ label: habit ? 'Save' : 'Add', onClick: save }}>
+          <h3 className="font-round font-bold">{habit ? 'Edit habit' : 'New habit'}</h3>
         </SheetHeader>
       }>
       {error && <p className="mb-3 text-sm text-warn" role="alert">{error}</p>}
@@ -37,7 +43,7 @@ export default function HabitSheet({ userId, onClose, onSaved }: { userId: strin
           className="size-16 shrink-0 rounded-2xl text-center text-3xl outline-none focus-visible:outline-2" />
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" aria-label="Name" enterKeyHint="done"
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save() } }}
-          autoFocus className={field} />
+          autoFocus={!habit} className={field} />
       </div>
 
       <div className="mt-6"><ColorPicker value={color} onChange={setColor} /></div>
@@ -53,6 +59,13 @@ export default function HabitSheet({ userId, onClose, onSaved }: { userId: strin
           <button onClick={() => setTarget((t) => t + 1)} aria-label="More" className={step}>+</button>
         </span>
       </div>
+
+      {habit && (
+        <>
+          <button onClick={() => commit(() => setArchived(habit.id, true))} className="mt-8 w-full py-3 font-semibold text-warn">Archive habit</button>
+          <p className="px-1 text-center text-sm text-mute">Hidden from Habits and Home. Check-ins are kept; unarchive any time.</p>
+        </>
+      )}
     </Sheet>
   )
 }

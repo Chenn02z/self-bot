@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { checkIn, listCheckIns, listHabits, removeCheckIn } from '../lib/api'
+import { checkIn, listCheckIns, listHabits, removeCheckIn, setSortOrders } from '../lib/api'
+import { reorder } from '../features/habits/stats'
 import { sgtToday } from '../lib/dates'
 import type { CheckIn, Habit } from '../lib/supabase'
 
@@ -46,5 +47,14 @@ export function useHabits(userId: string) {
       return i < 0 ? c : c.toSpliced(i, 1)
     }, () => removeCheckIn(habitId, day))
 
-  return { habits, checkIns, today, reload, tap, adjust }
+  // Reorder: optimistic, queued behind other writes. Rewrites every active row's sort_order, so a
+  // stale local copy (a reload racing a write) or a half-failed earlier write heals on the next move.
+  const move = (habitId: string, delta: -1 | 1) => {
+    const next = reorder(habits, habitId, delta)
+    setHabits(next)
+    const active = next.filter((h) => !h.archived_at).map(({ id, sort_order }) => ({ id, sort_order }))
+    queue.current = queue.current.then(() => setSortOrders(active)).then(() => {}, (e) => { console.error(e); reload() })
+  }
+
+  return { habits, checkIns, today, reload, tap, adjust, move }
 }

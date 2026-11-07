@@ -1,7 +1,7 @@
 // Run: node src/features/habits/stats.check.ts
 /// <reference types="node" />
 import assert from 'node:assert/strict'
-import { habitStats } from './stats.ts'
+import { habitStats, reorder } from './stats.ts'
 
 const habit = (id: string, target: number, archived_at: string | null = null) => ({ id, target, archived_at })
 const taps = (habit_id: string, day: string, n: number) => Array.from({ length: n }, () => ({ habit_id, day }))
@@ -50,5 +50,15 @@ assert.deepEqual(week.map((d) => [d.day, d.count, d.done]), [
   ['2026-11-01', 8, true], ['2026-11-02', 0, false], ['2026-11-03', 2, false], ['2026-11-04', 0, false],
   ['2026-11-05', 0, false], ['2026-11-06', 9, true], ['2026-11-07', 8, true],
 ])
+
+// Reorder: moves among active habits only, renumbers them 0..n-1 (ties from the default 0 resolve),
+// archived habits keep their place untouched; moving past either end is a no-op.
+const h = (id: string, sort_order: number, archived_at: string | null = null) => ({ id, target: 1, sort_order, archived_at })
+const list = [h('a', 0), h('b', 0), h('gone', 1, '2026-11-01T00:00:00Z'), h('c', 0)]
+const order = (l: { id: string; sort_order: number }[]) => l.map((x) => `${x.id}:${x.sort_order}`)
+assert.deepEqual(order(reorder(list, 'c', -1)), ['a:0', 'c:1', 'b:2', 'gone:1'])
+assert.deepEqual(order(reorder(list, 'a', 1)), ['b:0', 'a:1', 'c:2', 'gone:1'])
+assert.deepEqual(order(reorder(list, 'a', -1)), ['a:0', 'b:1', 'c:2', 'gone:1'])
+assert.deepEqual(order(reorder(list, 'c', 1)), ['a:0', 'b:1', 'c:2', 'gone:1'])
 
 console.log('habit stats ok')

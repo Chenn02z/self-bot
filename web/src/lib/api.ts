@@ -56,8 +56,19 @@ export type HabitFields = Pick<Habit, 'emoji' | 'name' | 'color' | 'target'>
 export const listHabits = async (): Promise<Habit[]> =>
   (await run(supabase.from('habits').select('*').order('sort_order').order('created_at'))) ?? []
 
-export const createHabit = (userId: string, f: HabitFields) =>
-  run(supabase.from('habits').insert({ ...f, user_id: userId }))
+// sortOrder places a new habit last; edits leave it alone.
+export async function saveHabit(userId: string, habit: Habit | null, f: HabitFields, sortOrder: number) {
+  if (habit) await run(supabase.from('habits').update(f).eq('id', habit.id))
+  else await run(supabase.from('habits').insert({ ...f, user_id: userId, sort_order: sortOrder }))
+}
+
+// Archive hides a habit and keeps its check-ins; there is deliberately no hard delete.
+// Unarchiving puts it back at sortOrder (the end of the list).
+export const setArchived = (id: string, archived: boolean, sortOrder?: number) =>
+  run(supabase.from('habits').update({ archived_at: archived ? new Date().toISOString() : null, ...(sortOrder === undefined ? {} : { sort_order: sortOrder }) }).eq('id', id))
+
+export const setSortOrders = (rows: { id: string; sort_order: number }[]) =>
+  Promise.all(rows.map((r) => run(supabase.from('habits').update({ sort_order: r.sort_order }).eq('id', r.id))))
 
 // Every check-in ever, paged past PostgREST's 1000-row cap: a streak can reach back arbitrarily far.
 // ponytail: full-history fetch on each load; compute streaks in SQL if this gets slow.

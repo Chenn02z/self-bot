@@ -30,3 +30,13 @@ export function habitStats<H extends HabitLike>(habits: H[], checkIns: CheckInLi
   })
   return { habits: stats, done: stats.filter((s) => s.done).length, total: stats.length }
 }
+
+// Moves an active habit one place up (-1) or down (+1) and renumbers the active ones 0..n-1,
+// so the default sort_order of 0 never leaves ties. Input is in display order; archived habits keep theirs.
+export function reorder<H extends { id: string; sort_order: number; archived_at: string | null }>(habits: H[], id: string, delta: -1 | 1): H[] {
+  const active = habits.filter((h) => !h.archived_at)
+  const i = active.findIndex((h) => h.id === id)
+  const j = i + delta
+  if (i >= 0 && j >= 0 && j < active.length) [active[i], active[j]] = [active[j], active[i]]
+  return [...active.map((h, n) => ({ ...h, sort_order: n })), ...habits.filter((h) => h.archived_at)]
+}
