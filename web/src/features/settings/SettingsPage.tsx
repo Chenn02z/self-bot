@@ -1,18 +1,20 @@
-import type { Category } from '../../lib/supabase'
+import BackButton from '../../ui/BackButton'
 import { pageTitle } from '../../ui/styles'
 import AccountSection from './AccountSection'
 import ApiKeysSection from './ApiKeysSection'
-import CategoriesSection from './CategoriesSection'
 import OwnAccountsSection from './OwnAccountsSection'
 
-export default function SettingsPage({ userId, cats, reloadCats }: { userId: string; cats: Category[]; reloadCats: () => void }) {
+// App-wide settings. Module settings (e.g. spending categories) live inside each module.
+export default function SettingsPage({ userId, onBack }: { userId: string; onBack: () => void }) {
   return (
-    <div className="space-y-9 px-5 pt-6">
-      <h1 className={pageTitle}>Settings</h1>
-      <CategoriesSection userId={userId} cats={cats} reload={reloadCats} />
-      <OwnAccountsSection userId={userId} />
-      <ApiKeysSection />
-      <AccountSection />
+    <div className="px-5">
+      <BackButton onBack={onBack} label="Home" />
+      <div className="space-y-9 pt-4">
+        <h1 className={pageTitle}>Settings</h1>
+        <OwnAccountsSection userId={userId} />
+        <ApiKeysSection />
+        <AccountSection />
+      </div>
     </div>
   )
 }
