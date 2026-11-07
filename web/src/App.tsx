@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import LoginPage from './features/auth/LoginPage'
+import HomePage, { type Screen } from './features/home/HomePage'
 import SettingsPage from './features/settings/SettingsPage'
 import SpendingPage from './features/spending/SpendingPage'
 import { useCategories } from './hooks/useCategories'
 import { useSession } from './hooks/useSession'
-import TabBar, { type Tab } from './ui/TabBar'
 
 export default function App() {
   const session = useSession()
@@ -14,16 +14,15 @@ export default function App() {
 }
 
 function Shell({ userId }: { userId: string }) {
-  const [tab, setTab] = useState<Tab>('spending')
-  const [adding, setAdding] = useState(false)
+  const [screen, setScreen] = useState<Screen | 'home'>('home')
   const { cats, reload } = useCategories()
+  const home = () => setScreen('home')
 
   return (
-    <div className="mx-auto min-h-dvh max-w-md pb-28 pt-[env(safe-area-inset-top)]">
-      {tab === 'spending'
-        ? <SpendingPage userId={userId} cats={cats} adding={adding} onAddClose={() => setAdding(false)} />
-        : <SettingsPage userId={userId} cats={cats} reloadCats={reload} />}
-      <TabBar tab={tab} onTab={setTab} onAdd={() => { setTab('spending'); setAdding(true) }} />
+    <div className="mx-auto min-h-dvh max-w-md pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
+      {screen === 'home' && <HomePage cats={cats} onOpen={setScreen} />}
+      {screen === 'spending' && <SpendingPage userId={userId} cats={cats} reloadCats={reload} onBack={home} />}
+      {screen === 'settings' && <SettingsPage userId={userId} onBack={home} />}
     </div>
   )
 }

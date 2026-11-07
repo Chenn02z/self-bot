@@ -2,7 +2,9 @@ import { useMemo, useRef, useState } from 'react'
 import { addMonths, daysInMonth, monthStart, sameMonth } from '../../lib/dates'
 import type { Category, Tx } from '../../lib/supabase'
 import { useMonthTransactions } from '../../hooks/useMonthTransactions'
-import { sectionTitle } from '../../ui/styles'
+import BackButton from '../../ui/BackButton'
+import { pageTitle, sectionTitle } from '../../ui/styles'
+import CategoriesSection from './CategoriesSection'
 import CategoryBreakdown from './CategoryBreakdown'
 import DayStepper from './DayStepper'
 import MonthHeader from './MonthHeader'
@@ -11,9 +13,11 @@ import { inCategory, onDay, spentIn, summarise } from './summary'
 import TransactionList from './TransactionList'
 import TransactionSheet from './TransactionSheet'
 
-type Props = { userId: string; cats: Category[]; adding: boolean; onAddClose: () => void }
+type Props = { userId: string; cats: Category[]; reloadCats: () => void; onBack: () => void }
 
-export default function SpendingPage({ userId, cats, adding, onAddClose }: Props) {
+export default function SpendingPage({ userId, cats, reloadCats, onBack }: Props) {
+  const [view, setView] = useState<'main' | 'categories'>('main')
+  const [adding, setAdding] = useState(false)
   const [month, setMonth] = useState(() => monthStart(new Date()))
   const [day, setDay] = useState(() => new Date().getDate())
   const [catFilter, setCatFilter] = useState<string | null>(null)
@@ -52,8 +56,21 @@ export default function SpendingPage({ userId, cats, adding, onAddClose }: Props
     setTimeout(reload, 4000) // AI category arrives a few seconds after insert
   }
 
+  // Spending's own settings. Rendered in place so month/day survive the round trip.
+  if (view === 'categories') return (
+    <div className="space-y-6 px-5">
+      <BackButton onBack={() => setView('main')} label="Spending" />
+      <h1 className={pageTitle}>Categories</h1>
+      <CategoriesSection userId={userId} cats={cats} reload={reloadCats} />
+    </div>
+  )
+
   return (
     <div className="px-5">
+      <div className="flex items-end justify-between">
+        <BackButton onBack={onBack} label="Home" />
+        <button onClick={() => setView('categories')} className="text-sm font-semibold text-mute">Categories</button>
+      </div>
       <MonthHeader month={month} canGoForward={!ongoing} onShift={shiftMonth} />
       <MonthTotal total={total} dailyAvg={dailyAvg} ongoing={ongoing} />
       <CategoryBreakdown slices={slices} catById={catById} selected={catFilter} onPick={pickCategory} />
@@ -80,8 +97,13 @@ export default function SpendingPage({ userId, cats, adding, onAddClose }: Props
 
       {(adding || editing) && (
         <TransactionSheet userId={userId} cats={cats} tx={editing}
-          onClose={() => { setEditing(null); onAddClose() }} onSaved={afterSave} />
+          onClose={() => { setEditing(null); setAdding(false) }} onSaved={afterSave} />
       )}
+
+      <button onClick={() => setAdding(true)} aria-label="Add transaction"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[max(1.25rem,calc(50%-14rem+1.25rem))] z-10 grid size-14 place-items-center rounded-full bg-ink text-card shadow-lg active:scale-95 motion-reduce:active:scale-100">
+        <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+      </button>
     </div>
   )
 }
