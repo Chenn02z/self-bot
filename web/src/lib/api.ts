@@ -59,12 +59,28 @@ export const listHabits = async (): Promise<Habit[]> =>
 export const createHabit = (userId: string, f: HabitFields) =>
   run(supabase.from('habits').insert({ ...f, user_id: userId }))
 
-export const listCheckIns = async (day: string): Promise<CheckIn[]> =>
-  (await run(supabase.from('check_ins').select('habit_id, day').eq('day', day))) ?? []
+// Every check-in ever, paged past PostgREST's 1000-row cap: a streak can reach back arbitrarily far.
+// ponytail: full-history fetch on each load; compute streaks in SQL if this gets slow.
+const PAGE = 1000
+export async function listCheckIns(): Promise<CheckIn[]> {
+  const all: CheckIn[] = []
+  for (let from = 0; ; from += PAGE) {
+    const page = (await run(supabase.from('check_ins').select('habit_id, day')
+      .order('day', { ascending: false }).order('id').range(from, from + PAGE - 1))) ?? []
+    all.push(...page)
+    if (page.length < PAGE) return all
+  }
+}
 
-// One tap = one row. The database stamps the Singapore day.
-export const checkIn = (userId: string, habitId: string) =>
-  run(supabase.from('check_ins').insert({ user_id: userId, habit_id: habitId }))
+// One tap = one row. Without a day, the database stamps today's Singapore day.
+export const checkIn = (userId: string, habitId: string, day?: string) =>
+  run(supabase.from('check_ins').insert({ user_id: userId, habit_id: habitId, ...(day ? { day } : {}) }))
+
+// Removes one check-in from that day; a day with none is left alone, so a count never goes below 0.
+export async function removeCheckIn(habitId: string, day: string) {
+  const [row] = (await run(supabase.from('check_ins').select('id').eq('habit_id', habitId).eq('day', day).limit(1))) ?? []
+  if (row) await run(supabase.from('check_ins').delete().eq('id', row.id))
+}
 
 // Profile
 export async function getOwnAccountsHint() {

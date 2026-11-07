@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { checkIn, listCheckIns, listHabits } from '../lib/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { checkIn, listCheckIns, listHabits, removeCheckIn } from '../lib/api'
 import { sgtToday } from '../lib/dates'
 import type { CheckIn, Habit } from '../lib/supabase'
 
-// Habits plus today's check-ins, refreshed whenever the app comes back to the foreground.
+// Habits plus their full check-in history, refreshed whenever the app comes back to the foreground.
 export function useHabits(userId: string) {
   const [habits, setHabits] = useState<Habit[]>([])
   const [checkIns, setCheckIns] = useState<CheckIn[]>([])
@@ -11,7 +11,7 @@ export function useHabits(userId: string) {
 
   const reload = useCallback(() => {
     const day = sgtToday()
-    Promise.all([listHabits(), listCheckIns(day)])
+    Promise.all([listHabits(), listCheckIns()])
       .then(([h, c]) => { setHabits(h); setCheckIns(c); setToday(day) }, console.error)
   }, [])
 
@@ -22,13 +22,29 @@ export function useHabits(userId: string) {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [reload])
 
-  // Count goes up on tap; a failed write resyncs from the server.
+  // Writes run one after another, so a quick + then − (or − −) hits the server in tap order:
+  // removeCheckIn's select-then-delete always sees the previous write.
+  const queue = useRef(Promise.resolve())
+  // Optimistic: local state changes now; a failed write resyncs from the server.
   // Past SGT midnight since the last load, the screen shows a stale day: write, then reload.
-  const tap = (habitId: string) => {
-    if (sgtToday() !== today) return void checkIn(userId, habitId).catch(console.error).finally(reload)
-    setCheckIns((c) => [...c, { habit_id: habitId, day: today }])
-    checkIn(userId, habitId).catch((e) => { console.error(e); reload() })
+  const write = (local: (c: CheckIn[]) => CheckIn[], remote: () => Promise<unknown>) => {
+    const stale = sgtToday() !== today
+    if (!stale) setCheckIns(local)
+    queue.current = queue.current.then(remote)
+      .then(() => { if (stale) reload() }, (e) => { console.error(e); reload() })
   }
 
-  return { habits, checkIns, today, reload, tap }
+  // One tap = one check-in today.
+  const tap = (habitId: string) =>
+    write((c) => [...c, { habit_id: habitId, day: today }], () => checkIn(userId, habitId))
+
+  // Fixing a day: +1 backdates a check-in, -1 removes one (never below 0).
+  const adjust = (habitId: string, day: string, delta: 1 | -1) => delta === 1
+    ? write((c) => [...c, { habit_id: habitId, day }], () => checkIn(userId, habitId, day))
+    : write((c) => {
+      const i = c.findIndex((x) => x.habit_id === habitId && x.day === day)
+      return i < 0 ? c : c.toSpliced(i, 1)
+    }, () => removeCheckIn(habitId, day))
+
+  return { habits, checkIns, today, reload, tap, adjust }
 }
